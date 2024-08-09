@@ -1,0 +1,47 @@
+为了模块化代码，我会将代码分解为更小的函数，每个函数负责一个特定的任务。这样做可以提高代码的可读性和可维护性，并且使得代码更易于优化和扩展。以下是对代码进行模块化优化的一种可能方式：
+
+```python
+# 模块化优化后的代码示例
+import os
+from datetime import datetime, timedelta
+import numpy as np
+import pandas as pd
+import warnings
+from scipy.io import savemat
+from data_processing import read_ncfiles_data_before_date, read_ncfiles_data_after_date
+from model_prediction import use_pc_to_predict_data
+from evaluation import calculate_statistics_4_evaluate
+from visualization import plot_the_kth_Total_predict_and_true, plot_the_kth_Anomaly_predict_and_true, writeNC
+
+warnings.filterwarnings("ignore")
+
+def main_prediction_and_evaluation(var, data_in_path, target_date, days_history, days_predict):
+    long, latg, data_history = read_ncfiles_data_before_date(var, data_in_path, days_history, target_date)
+    data_predict, data_ano_predict, var_cli = use_pc_to_predict_data(var, data_history, days_history, days_predict, target_date)
+    
+    _, _, doys_predict, data_real_4_evaluate = read_ncfiles_data_after_date(var, data_in_path, days_predict, target_date)
+    data_ano_real_4_evaluate = data_real_4_evaluate - var_cli[doys_predict, :, :]
+    
+    statistics_4_data = calculate_statistics_4_evaluate(days_predict, data_real_4_evaluate, data_predict)
+    statistics_4_data_ano = calculate_statistics_4_evaluate(days_predict, data_ano_real_4_evaluate, data_ano_predict)
+    
+    return long, latg, data_predict, data_ano_predict, data_ano_real_4_evaluate, statistics_4_data, statistics_4_data_ano
+
+def main_visualization_and_output(var, long, latg, target_date, days_predict, data_predict, data_ano_predict):
+    for k_step in range(1, days_predict + 1):
+        plot_the_kth_Total_predict_and_true(long, latg, var, k_step, data_predict, data_real_4_evaluate)
+        plot_the_kth_Anomaly_predict_and_true(long, latg, var, k_step, data_ano_predict, data_ano_real_4_evaluate)
+    
+    data_out_file = f'../output/{var}/{target_date.strftime("%Y%m%d")}.nc'
+    writeNC(data_out_file, var, long, latg, date_predict, data_predict, data_ano_predict)
+
+if __name__ == '__main__':
+    # 设置参数等
+    # ...
+    
+    # 循环调用主函数
+    for iday in range(0, date_num):
+        target_date = date_begin + timedelta(days=iday)
+        long, latg, data_predict, data_ano_predict, data_ano_real_4_evaluate, statistics_4_data, statistics_4_data_ano = main_prediction_and_evaluation(var, data_in_path, target_date, days_history, days_predict)
+        main_visualization_and_output(var, long, latg, target_date, days_predict, data_predict, data_ano_predict)
+```
